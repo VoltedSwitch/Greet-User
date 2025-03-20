@@ -9,11 +9,7 @@ else:
 
 from color_constants import cc 
 from file_handler import FileHandler  
-from utilities import (  
-    clear_screen, 
-    hide_cursor, 
-    show_cursor
-)
+from utilities import clear_screen, CursorRelated
 
 class LectureTracker:
     DECREMENT_LECTURE_COUNTER = "d"
@@ -38,7 +34,6 @@ class LectureTracker:
 
     def __init__(self):
         self.lecture_goal, self.total_lectures_listened, self.is_streak_based, self.date_to_reset_streak = FileHandler.load_data()
-        self.today_lecture_counter = 0
         self.goal_met = False
 
     def color_text_state(self, text):
@@ -73,26 +68,20 @@ class LectureTracker:
     def set_lecture_goal(self):
         while True:
             try:
-                show_cursor()
+                CursorRelated.show_cursor()
                 self.lecture_goal = int(input(f"Enter amount of lectures to complete: "))
                 clear_screen()
-                hide_cursor()
+                CursorRelated.hide_cursor()
             except ValueError:
                 clear_screen()
-                hide_cursor()
+                CursorRelated.hide_cursor()
                 print(f"{cc.RED}Total Lectures amount must be a valid integer!{cc.END}")
-                time.sleep(3)
-                clear_screen()
                 continue
 
             if self.lecture_goal < self.total_lectures_listened:
                 print(f"{cc.RED}Lectures goal cannot be LESS than the amount of lectures completed so far!{cc.END}")
-                time.sleep(3)
-                clear_screen()
             elif self.lecture_goal == self.total_lectures_listened:
                 print(f"{cc.RED}Lectures goal cannot be EQUAL to the amount of lectures completed so far!{cc.END}")
-                time.sleep(3)
-                clear_screen()
             else:
                 break
 
@@ -184,7 +173,7 @@ Your Progress: {self.show_progress_bar()}
 
     def get_valid_user_menu_choice(self):
         while True:
-            show_cursor()
+            CursorRelated.show_cursor()
             self.show_program_intro()
             if self.is_streak_based and self.error_msg_and_reset_streak_conditon():
                 self.reset_streak()
@@ -192,7 +181,7 @@ Your Progress: {self.show_progress_bar()}
                 print(f'"You\'re on base streak {self.total_lectures_listened}!"')
             user_choice = self.options_menu()
             clear_screen()
-            hide_cursor()
+            CursorRelated.hide_cursor()
             if user_choice in self.VALID_OPTIONS:
                 if user_choice == self.TURN_ON_STREAK_BASED_COUNTING and self.total_lectures_listened > 0:
                     print(
@@ -218,7 +207,7 @@ Your Progress: {self.show_progress_bar()}
 
     def confirm_user_full_reset(self):
         while True:
-            show_cursor()
+            CursorRelated.show_cursor()
             surity = input(
                 f"Are you sure you want to reset everything? ({cc.LIGHT_GREEN}y{cc.END}) or ({cc.LIGHT_RED}n{cc.END}): "
                           ).strip().lower()
