@@ -5,6 +5,11 @@ def clear_screen():
     os.system("clear")
 
 
+def get_terminal_size():
+    """Returns the size of the terminal window."""
+    return os.get_terminal_size()
+
+
 class CursorRelated:
     """A class that provides methods for manipulating the cursor."""
     
