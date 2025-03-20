@@ -2,6 +2,8 @@ import json
 import datetime
 
 class FileHandler:
+    """Handles reading and writing data to a JSON file."""
+    
     FILE_NAME = "lectures_listened.json"
 
     @staticmethod
