@@ -35,6 +35,7 @@ class LectureTracker:
     def __init__(self):
         self.lecture_goal, self.total_lectures_listened, self.is_streak_based, self.date_to_reset_streak = FileHandler.load_data()
         self.goal_met = False
+        self.should_display_broke_out_of_streak_mode_message = False
 
     def color_text_state(self, text):
         # Calculate percentage completed
@@ -53,8 +54,7 @@ class LectureTracker:
         return colored_text
     
     def show_program_intro(self):
-        print(f"{cc.LIGHT_BLUE}Lecture Tracker{cc.END}")
-        print(f"{cc.LIGHT_WHITE}---------------{cc.END}")
+        print("Lecture Tracker 📝")
 
     def show_progress_bar(self):
         percentage = (self.total_lectures_listened / self.lecture_goal) * 100
@@ -66,31 +66,44 @@ class LectureTracker:
         return f"[{bar}] {cc.DARK_GRAY}{percentage:.1f}%{cc.END}"
             
     def set_lecture_goal(self):
+        display_invalid_integer_error_message = False
+        display_goal_equal_to_listened_lectures_error_message = False
+        display_goal_less_than_listened_lectures_error_message = False
         while True:
+            self.show_program_intro()
+        
+            if display_invalid_integer_error_message:
+                print(f"{cc.RED}Total Lectures amount must be a valid integer!{cc.END}")
+                display_invalid_integer_error_message = False
+
+            if display_goal_less_than_listened_lectures_error_message:
+                print(f"{cc.RED}Lectures goal cannot be LESS than the amount of lectures completed so far!{cc.END}")
+                display_goal_less_than_listened_lectures_error_message = False
+
+            if display_goal_equal_to_listened_lectures_error_message:
+                print(f"{cc.RED}Lectures goal cannot be EQUAL to the amount of lectures completed so far!{cc.END}")
+                display_goal_equal_to_listened_lectures_error_message = False
+
             try:
-                CursorRelated.show_cursor()
+                print()
                 self.lecture_goal = int(input(f"Enter amount of lectures to complete: "))
                 clear_screen()
-                CursorRelated.hide_cursor()
             except ValueError:
                 clear_screen()
-                CursorRelated.hide_cursor()
-                print(f"{cc.RED}Total Lectures amount must be a valid integer!{cc.END}")
+                display_invalid_integer_error_message = True
                 continue
 
             if self.lecture_goal < self.total_lectures_listened:
-                print(f"{cc.RED}Lectures goal cannot be LESS than the amount of lectures completed so far!{cc.END}")
+                display_goal_less_than_listened_lectures_error_message = True
             elif self.lecture_goal == self.total_lectures_listened:
-                print(f"{cc.RED}Lectures goal cannot be EQUAL to the amount of lectures completed so far!{cc.END}")
+                display_goal_equal_to_listened_lectures_error_message = True
             else:
                 break
 
     def reset_streak(self):
         self.total_lectures_listened = 0
         while True:
-            proceed_input = input(
-                f"❌ You missed a day! Your streak has restarted 😣. ({cc.DARK_GRAY}p{cc.END}) proceed: "
-                                  ).strip().lower()
+            proceed_input = input(f"❌ You missed a day! Your streak has restarted 😣. ({cc.DARK_GRAY}p{cc.END}) proceed: ").strip().lower()
             clear_screen()
 
             if proceed_input == "p":
@@ -103,11 +116,12 @@ class LectureTracker:
         )
 
     def options_menu(self):
+        right_lecture_word = "Lecture" if self.lecture_goal == 1 else "Lectures"
         if self.is_streak_based:
             prompt = f"""
 Your Progress: {self.show_progress_bar()}
-                                    
-{cc.ITALIC}Goal To Complete {cc.ITALIC}{cc.LIGHT_PURPLE}{self.lecture_goal}{cc.END} {cc.ITALIC}{"Lecture" if self.lecture_goal == 1 else "Lectures"}{cc.END}
+                                
+{cc.ITALIC}Goal To Complete {cc.ITALIC}{cc.LIGHT_PURPLE}{self.lecture_goal}{cc.END} {cc.ITALIC}{right_lecture_word}{cc.END}
 
 ({cc.BLACK}{self.DECREMENT_LECTURE_COUNTER}{cc.END}) decrement lecture counter
 ({cc.LIGHT_CYAN}{self.RESET_LECTURE_COUNTER}{cc.END}) reset lecture counter
@@ -116,14 +130,14 @@ Your Progress: {self.show_progress_bar()}
 ({cc.LIGHT_RED}{self.FULL_RESET}{cc.END}) reset lecture counter, goal and mode
 ({cc.PURPLE}{self.SAVE_AND_EXIT}{cc.END}) save and exit
 
-{cc.LIGHT_WHITE}Lecture Streak {self.total_lectures_listened + 1} ({cc.LIGHT_GREEN}{self.LECTURE_COMPLETED}{cc.LIGHT_WHITE})ompleted?{cc.END}
+{cc.LIGHT_WHITE}Lecture {self.total_lectures_listened + 1} ({cc.LIGHT_GREEN}{self.LECTURE_COMPLETED}{cc.LIGHT_WHITE})ompleted?{cc.END}
 
 > """
         else:
             prompt = f"""
 Your Progress: {self.show_progress_bar()}
                                     
-{cc.ITALIC}Goal To Complete {cc.ITALIC}{cc.LIGHT_PURPLE}{self.lecture_goal}{cc.END} {cc.ITALIC}{"Lecture" if self.lecture_goal == 1 else "Lectures"}{cc.END}
+{cc.ITALIC}Goal To Complete {cc.ITALIC}{cc.LIGHT_PURPLE}{self.lecture_goal}{cc.END} {cc.ITALIC}{right_lecture_word}{cc.END}
 
 ({cc.BLACK}{self.DECREMENT_LECTURE_COUNTER}{cc.END}) decrement lecture counter
 ({cc.LIGHT_CYAN}{self.RESET_LECTURE_COUNTER}{cc.END}) reset lecture counter
@@ -170,47 +184,63 @@ Your Progress: {self.show_progress_bar()}
                     break
 
         return user_input.strip().lower()
+    
+    def display_invalid_option_error_msg(self):
+        valid_options_list = list(self.VALID_OPTIONS)
+        if self.is_streak_based:
+            valid_options_list.remove(self.TURN_ON_STREAK_BASED_COUNTING)
+        else:
+            valid_options_list.remove(self.TURN_OFF_STREAK_BASED_COUNTING)
+        
+        print(f"{cc.RED}Please enter a valid option:", end=" ")
+        for option in valid_options_list:
+            if option == valid_options_list[2]:
+                print()
+            if option == valid_options_list[-1]:
+                print(f"or {option}.{cc.END}")
+                continue
+            print(option, end=", ")
 
     def get_valid_user_menu_choice(self):
+        display_invalid_choice_error_message = False
+        display_disabled_mode_switch_error_message = False
+
         while True:
-            CursorRelated.show_cursor()
             self.show_program_intro()
+
+            if self.should_display_broke_out_of_streak_mode_message:
+                print('"You broke out of streak mode!"')
+                self.should_display_broke_out_of_streak_mode_message = False
+
+            if display_invalid_choice_error_message:
+                self.display_invalid_option_error_msg()
+                display_invalid_choice_error_message = False
+
+            if display_disabled_mode_switch_error_message:
+                print(f"{cc.RED}You can only start a streak from scratch!\n(starting from zero lectures listened){cc.END}")
+                display_disabled_mode_switch_error_message = False
+
             if self.is_streak_based and self.error_msg_and_reset_streak_conditon():
                 self.reset_streak()
+
             if self.is_streak_based and self.total_lectures_listened == 1:
                 print(f'"You\'re on base streak {self.total_lectures_listened}!"')
+
             user_choice = self.options_menu()
             clear_screen()
-            CursorRelated.hide_cursor()
+
             if user_choice in self.VALID_OPTIONS:
                 if user_choice == self.TURN_ON_STREAK_BASED_COUNTING and self.total_lectures_listened > 0:
-                    print(
-                        f"{cc.RED}You can only start a streak from scratch!\n(starting from zero lectures listened){cc.END}"
-                    )
+                    display_disabled_mode_switch_error_message = True
                     continue
                 return user_choice
+            
             elif user_choice != "_nothing_":
-                valid_options_list = list(self.VALID_OPTIONS)
-                if self.is_streak_based:
-                    valid_options_list.remove(self.TURN_ON_STREAK_BASED_COUNTING)
-                else:
-                    valid_options_list.remove(self.TURN_OFF_STREAK_BASED_COUNTING)
-                
-                print(f"{cc.RED}Please enter a valid option:", end=" ")
-                for option in valid_options_list:
-                    if option == valid_options_list[2]:
-                        print()
-                    if option == valid_options_list[-1]:
-                        print(f"or {option}.{cc.END}")
-                        continue
-                    print(option, end=", ")
+                display_invalid_choice_error_message = True
 
     def confirm_user_full_reset(self):
         while True:
-            CursorRelated.show_cursor()
-            surity = input(
-                f"Are you sure you want to reset everything? ({cc.LIGHT_GREEN}y{cc.END}) or ({cc.LIGHT_RED}n{cc.END}): "
-                          ).strip().lower()
+            surity = input(f"Are you sure you want to reset everything? ({cc.LIGHT_GREEN}y{cc.END}) or ({cc.LIGHT_RED}n{cc.END}): ").strip().lower()
             clear_screen()
             if surity == "y":
                 self.lecture_goal = 0
@@ -243,9 +273,10 @@ Your Progress: {self.show_progress_bar()}
 
     def disable_streak_based_counting(self):
         self.is_streak_based = False
-        print('"You broke out of streak mode!"')
+        self.should_display_broke_out_of_streak_mode_message = True
 
     def if_lecture_goal_met(self):
+        CursorRelated.hide_cursor()
         print(f"Your Progress: {self.show_progress_bar()}")
         time.sleep(3)
         clear_screen()
@@ -314,4 +345,6 @@ Your Progress: {self.show_progress_bar()}
 
 
 app = LectureTracker()
-app.run()
+
+if __name__ == "__main__":
+    app.run()
