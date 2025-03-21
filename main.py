@@ -1,5 +1,7 @@
+import tty 
 import sys
 import time
+import termios 
 import datetime
 
 if sys.platform == "win32":
@@ -9,15 +11,15 @@ else:
 
 from color_constants import cc 
 from file_handler import FileHandler  
-from utilities import clear_screen, CursorRelated
+from utilities import clear_screen, instant_input, CursorRelated
 
 class LectureTracker:
     DECREMENT_LECTURE_COUNTER = "d"
-    RESET_LECTURE_COUNTER = "rlc"
-    RESET_GOAL_COUNTER = "rgc" 
-    TURN_OFF_STREAK_BASED_COUNTING = "tfsm" 
-    TURN_ON_STREAK_BASED_COUNTING = "tosm" 
-    FULL_RESET = "full_reset"  
+    RESET_LECTURE_COUNTER = "l"
+    RESET_GOAL_COUNTER = "r" 
+    TURN_OFF_STREAK_BASED_COUNTING = "o" 
+    TURN_ON_STREAK_BASED_COUNTING = "n"
+    FULL_RESET = "f"  
     LECTURE_COMPLETED = "c"
     SAVE_AND_EXIT = "e"
 
@@ -34,7 +36,6 @@ class LectureTracker:
 
     def __init__(self):
         self.lecture_goal, self.total_lectures_listened, self.is_streak_based, self.date_to_reset_streak = FileHandler.load_data()
-        self.goal_met = False
         self.should_display_broke_out_of_streak_mode_message = False
 
     def color_text_state(self, text):
@@ -43,13 +44,13 @@ class LectureTracker:
 
         # Assign colors based on percentage ranges
         if percentage_completed >= 80:
-            colored_text = f"{cc.LIGHT_GREEN}{text}"  # 50% and above -> Green
+            colored_text = f"{cc.LIGHT_GREEN}{text}"  
         elif percentage_completed >= 50:
-            colored_text = f"{cc.YELLOW}{text}"  # 30% to 49% -> Yellow
+            colored_text = f"{cc.YELLOW}{text}"
         elif percentage_completed >= 20:
-            colored_text = f"{cc.ORANGE}{text}"  # 10% to 29% -> Orange
+            colored_text = f"{cc.ORANGE}{text}"
         else:
-            colored_text = f"{cc.LIGHT_RED}{text}"  # Below 10% -> Red
+            colored_text = f"{cc.LIGHT_RED}{text}"
 
         return colored_text
     
@@ -101,12 +102,14 @@ class LectureTracker:
                 break
 
     def reset_streak(self):
-        self.total_lectures_listened = 0
         while True:
-            proceed_input = input(f"❌ You missed a day! Your streak has restarted 😣. ({cc.DARK_GRAY}p{cc.END}) proceed: ").strip().lower()
+            print()
+            proceed_input = instant_input(f"❌ You missed a day! Your streak has restarted 😣. ({cc.DARK_GRAY}p{cc.END}) proceed: ").strip().lower()
             clear_screen()
+            self.show_program_intro()
 
             if proceed_input == "p":
+                self.total_lectures_listened = 0
                 break
                 
     def error_msg_and_reset_streak_conditon(self):
@@ -114,6 +117,36 @@ class LectureTracker:
             self.total_lectures_listened > 0 and
             self.today_s_date() == self.date_to_reset_streak
         )
+    
+    def streak_mode_input(self):
+        # Windows implementation
+        if sys.platform == "win32":
+            while True:
+                if self.error_msg_and_reset_streak_conditon():
+                    return "_nothing_"  # Condition met, exit immediately
+
+                if msvcrt.kbhit():  # Check if a key was pressed
+                    return msvcrt.getwch().lower()  # Return the key instantly
+
+                time.sleep(0.05)  # Small delay for efficiency
+
+        # Unix/macOS implementation
+        else:
+            fd = sys.stdin.fileno()
+            old_settings = termios.tcgetattr(fd)
+
+            try:
+                tty.setraw(fd)  # Set terminal to raw mode
+                while True:
+                    if self.error_msg_and_reset_streak_conditon():
+                        return "_nothing_"  # Condition met, exit immediately
+
+                    rlist, _, _ = select.select([sys.stdin], [], [], 0.05)  # Check input availability
+                    if rlist:  # If input is available
+                        return sys.stdin.read(1).lower()  # Return first detected key
+
+            finally:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)  # Restore terminal settings
 
     def options_menu(self):
         right_lecture_word = "Lecture" if self.lecture_goal == 1 else "Lectures"
@@ -153,37 +186,8 @@ Your Progress: {self.show_progress_bar()}
         print(prompt, end="", flush=True)
 
         if not self.is_streak_based:
-            return input().strip().lower()
-        
-        user_input = ""
-
-        # Streak mode: Check for streak expiration while waiting for input
-        if sys.platform == "win32":  # Windows implementation
-            while True:
-                if self.error_msg_and_reset_streak_conditon():
-                    return "_nothing_"
-
-                if msvcrt.kbhit():  # Detect keypress
-                    char = msvcrt.getwch()
-                    if char in ("\r", "\n"):  # If Enter is pressed, break
-                        break
-                    user_input += char
-                    sys.stdout.write(char)
-                    sys.stdout.flush()
-
-                time.sleep(0.1)  # Prevents high CPU usage
-
-        else:  # Unix/macOS implementation
-            while True:
-                rlist, _, _ = select.select([sys.stdin], [], [], 0.1)  # Check input every 0.1 sec
-                if self.error_msg_and_reset_streak_conditon():
-                    return "_nothing_"
-
-                if rlist:  # If input is available
-                    user_input = sys.stdin.readline().strip().lower()
-                    break
-
-        return user_input.strip().lower()
+            return instant_input().strip().lower()
+        return self.streak_mode_input()
     
     def display_invalid_option_error_msg(self):
         valid_options_list = list(self.VALID_OPTIONS)
@@ -240,12 +244,11 @@ Your Progress: {self.show_progress_bar()}
 
     def confirm_user_full_reset(self):
         while True:
-            surity = input(f"Are you sure you want to reset everything? ({cc.LIGHT_GREEN}y{cc.END}) or ({cc.LIGHT_RED}n{cc.END}): ").strip().lower()
+            surity = instant_input(f"Are you sure you want to reset everything? ({cc.LIGHT_GREEN}y{cc.END}) or ({cc.LIGHT_RED}n{cc.END}): ").strip().lower()
             clear_screen()
             if surity == "y":
                 self.lecture_goal = 0
                 self.total_lectures_listened = 0
-                self.today_lecture_counter = 0
                 self.is_streak_based = False   
                 return True
             elif surity == "n":
@@ -280,15 +283,17 @@ Your Progress: {self.show_progress_bar()}
         print(f"Your Progress: {self.show_progress_bar()}")
         time.sleep(3)
         clear_screen()
+
         if self.lecture_goal == 1:
             print(f"Congrats on completing 1 lecture 🥳!")
         else:
             print(f"Congrats on completing all {self.lecture_goal} of your lectures 🥳!")
-        self.goal_met = True
 
         self.lecture_goal = 0
         self.total_lectures_listened = 0
         self.is_streak_based = False
+
+        self.save_and_exit()
 
     def save_and_exit(self):
         self.save_state()
@@ -339,9 +344,6 @@ Your Progress: {self.show_progress_bar()}
                 
                 elif user_menu_choice == self.SAVE_AND_EXIT:
                    self.save_and_exit()
-                
-                if self.goal_met:
-                    exit()
 
 
 app = LectureTracker()
