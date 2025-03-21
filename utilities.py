@@ -6,11 +6,12 @@ import select
 
 def clear_screen():
     """Clears the terminal screen."""
-    os.system("clear")
+    os.system("clear" if os.name == "posix" else "cls")
 
 
-def instant_input(prompt, timeout=None, special_keys=None):
-    print(prompt, end="", flush=True)
+def instant_input(prompt=None, timeout=None, special_keys=None):
+    if prompt:
+        print(prompt, end="", flush=True)
 
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
