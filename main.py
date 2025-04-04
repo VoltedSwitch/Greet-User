@@ -36,7 +36,6 @@ class LectureTracker:
 
     def __init__(self):
         self.lecture_goal, self.total_lectures_listened, self.is_streak_based, self.date_to_reset_streak = FileHandler.load_data()
-        self.should_display_broke_out_of_streak_mode_message = False
 
     def color_text_state(self, text):
         # Calculate percentage completed
@@ -212,10 +211,6 @@ Your Progress: {self.show_progress_bar()}
         while True:
             self.show_program_intro()
 
-            if self.should_display_broke_out_of_streak_mode_message:
-                print('"You broke out of streak mode!"')
-                self.should_display_broke_out_of_streak_mode_message = False
-
             if display_invalid_choice_error_message:
                 self.display_invalid_option_error_msg()
                 display_invalid_choice_error_message = False
@@ -226,9 +221,6 @@ Your Progress: {self.show_progress_bar()}
 
             if self.is_streak_based and self.error_msg_and_reset_streak_conditon():
                 self.reset_streak()
-
-            if self.is_streak_based and self.total_lectures_listened == 1:
-                print(f'"You\'re on base streak {self.total_lectures_listened}!"')
 
             user_choice = self.options_menu()
             clear_screen()
@@ -276,7 +268,6 @@ Your Progress: {self.show_progress_bar()}
 
     def disable_streak_based_counting(self):
         self.is_streak_based = False
-        self.should_display_broke_out_of_streak_mode_message = True
 
     def if_lecture_goal_met(self):
         CursorRelated.hide_cursor()
