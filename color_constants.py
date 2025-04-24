@@ -1,5 +1,6 @@
 class Colors:
-    """ ANSI color codes """
+    """ANSI color codes"""
+
     BLACK = "\033[0;30m"
     RED = "\033[0;31m"
     GREEN = "\033[0;32m"
@@ -25,5 +26,6 @@ class Colors:
     NEGATIVE = "\033[7m"
     CROSSED = "\033[9m"
     END = "\033[0m"
+
 
 cc = Colors()

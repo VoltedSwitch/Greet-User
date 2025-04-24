@@ -4,6 +4,7 @@ import termios
 import tty
 import select
 
+
 def clear_screen():
     """Clears the terminal screen."""
     os.system("clear" if os.name == "posix" else "cls")
@@ -34,7 +35,9 @@ def instant_input(prompt=None, timeout=None, special_keys=None):
         if special_keys is None:
             return key_pressed  # Return raw keypress if no special keys are set
         else:
-            return special_keys.get(key_pressed, key_pressed)  # Apply mapping if provided
+            return special_keys.get(
+                key_pressed, key_pressed
+            )  # Apply mapping if provided
 
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
@@ -42,7 +45,7 @@ def instant_input(prompt=None, timeout=None, special_keys=None):
 
 class CursorRelated:
     """A class that provides methods for manipulating the cursor."""
-    
+
     @staticmethod
     def hide_cursor():
         """Hides the cursor using ANSI escape sequences."""
