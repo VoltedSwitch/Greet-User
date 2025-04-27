@@ -9,9 +9,9 @@ if sys.platform == "win32":
 else:
     import select  # Unix/macOS library for monitoring input availability
 
-from color_constants import cc
-from file_handler import FileHandler
-from utilities import clear_screen, instant_input, CursorRelated
+from utils.color_constants import cc
+from utils.file_handler import FileHandler
+from utils.utilities import clear_screen, instant_input, CursorRelated
 
 
 class LectureTracker:
